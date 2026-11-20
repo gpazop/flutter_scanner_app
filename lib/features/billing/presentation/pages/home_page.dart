@@ -9,6 +9,7 @@ import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../domain/entities/cart_item.dart';
+import '../widgets/cart_item_swipe.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,7 +25,7 @@ class _HomePageState extends State<HomePage> {
   );
 
   bool _isCameraOn = true;
-  bool _isFlashOn = false;
+  bool _cameraBusy = false;
 
   // Cooldown mapping to prevent rapid firing of the same barcode
   final Map<String, DateTime> _lastScanTimes = {};
@@ -35,7 +36,45 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  Future<void> _startCamera() async {
+    await _scannerController.start();
+    if (mounted && !_scannerController.value.isRunning) {
+      setState(() => _isCameraOn = false);
+    }
+  }
+
+  Future<void> _setCameraOn(bool enabled) async {
+    if (_cameraBusy || _scannerController.value.isStarting) return;
+    _cameraBusy = true;
+    setState(() => _isCameraOn = enabled);
+    try {
+      if (enabled) {
+        await _startCamera();
+      } else {
+        await _scannerController.stop();
+      }
+    } finally {
+      _cameraBusy = false;
+    }
+  }
+
+  Future<void> _withScannerPaused(Future<void> Function() action) async {
+    if (_cameraBusy || _scannerController.value.isStarting) return;
+    _cameraBusy = true;
+    try {
+      if (_isCameraOn) await _scannerController.stop();
+      if (mounted) await action();
+    } finally {
+      try {
+        if (mounted && _isCameraOn) await _startCamera();
+      } finally {
+        _cameraBusy = false;
+      }
+    }
+  }
+
   void _onDetect(BarcodeCapture capture) async {
+    if (_cameraBusy || !_isCameraOn) return;
     final List<Barcode> barcodes = capture.barcodes;
     final now = DateTime.now();
 
@@ -62,7 +101,7 @@ class _HomePageState extends State<HomePage> {
           Vibration.vibrate();
         }
 
-        if (mounted) {
+        if (mounted && !_cameraBusy && _isCameraOn) {
           context.read<BillingBloc>().add(ScanBarcodeEvent(rawValue));
         }
         break; // Process one barcode at a time per frame
@@ -114,11 +153,7 @@ class _HomePageState extends State<HomePage> {
           return PrimaryButton(
             onPressed: state.cartItems.isEmpty
                 ? null
-                : () async {
-                    _scannerController.stop();
-                    await context.push('/checkout');
-                    if (_isCameraOn && mounted) _scannerController.start();
-                  },
+                : () => _withScannerPaused(() => context.push('/checkout')),
             icon: Icons.payment,
             label: 'Review Order',
           );
@@ -144,37 +179,26 @@ class _HomePageState extends State<HomePage> {
               children: [
                 _buildOverlayButton(
                   icon: Icons.settings,
-                  onPressed: () async {
-                    _scannerController.stop();
-                    await context.push('/settings');
-                    if (_isCameraOn && mounted) _scannerController.start();
-                  },
+                  onPressed: () =>
+                      _withScannerPaused(() => context.push('/settings')),
                 ),
                 const SizedBox(height: 16),
                 if (_isCameraOn)
-                  _buildOverlayButton(
-                    icon: _isFlashOn
-                        ? Icons.flashlight_off
-                        : Icons.flashlight_on,
-                    onPressed: () {
-                      setState(() => _isFlashOn = !_isFlashOn);
-                      _scannerController.toggleTorch();
-                    },
+                  ValueListenableBuilder(
+                    valueListenable: _scannerController,
+                    builder: (context, camera, child) => _buildOverlayButton(
+                      icon: camera.torchState == TorchState.on
+                          ? Icons.flashlight_off
+                          : Icons.flashlight_on,
+                      onPressed: () {
+                        if (!_cameraBusy) _scannerController.toggleTorch();
+                      },
+                    ),
                   ),
                 if (_isCameraOn) const SizedBox(height: 16),
                 _buildOverlayButton(
                   icon: _isCameraOn ? Icons.videocam : Icons.videocam_off,
-                  // color:  Colors.white24 ,
-                  onPressed: () {
-                    setState(() {
-                      _isCameraOn = !_isCameraOn;
-                    });
-                    if (_isCameraOn) {
-                      _scannerController.start();
-                    } else {
-                      _scannerController.stop();
-                    }
-                  },
+                  onPressed: () => _setCameraOn(!_isCameraOn),
                 ),
               ],
             ),
@@ -182,22 +206,24 @@ class _HomePageState extends State<HomePage> {
 
           // Central Overlay Bounding Box
           if (_isCameraOn)
-            Center(
-              child: Container(
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white24, width: 2),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Stack(
-                  children: [
-                    // Corners
-                    _buildCorner(Alignment.topLeft),
-                    _buildCorner(Alignment.topRight),
-                    _buildCorner(Alignment.bottomLeft),
-                    _buildCorner(Alignment.bottomRight),
-                  ],
+            IgnorePointer(
+              child: Center(
+                child: Container(
+                  width: 250,
+                  height: 250,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white24, width: 2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Corners
+                      _buildCorner(Alignment.topLeft),
+                      _buildCorner(Alignment.topRight),
+                      _buildCorner(Alignment.bottomLeft),
+                      _buildCorner(Alignment.bottomRight),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -259,10 +285,7 @@ class _HomePageState extends State<HomePage> {
               'Turn on Camera',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            onPressed: () {
-              setState(() => _isCameraOn = true);
-              _scannerController.start();
-            },
+            onPressed: () => _setCameraOn(true),
           ),
         ],
       ),
@@ -365,46 +388,51 @@ class _HomePageState extends State<HomePage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Scanned Items',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Scanned Items',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        Text(
-                          '$totalItems items total',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
+                          Text(
+                            '$totalItems items total',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text(
-                          'TOTAL PRICE',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                            letterSpacing: 1.2,
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text(
+                            'TOTAL PRICE',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                              letterSpacing: 1.2,
+                            ),
                           ),
-                        ),
-                        Text(
-                          '₹${state.totalAmount.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(context).primaryColor,
+                          Text(
+                            '₹${state.totalAmount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: Theme.of(context).primaryColor,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -431,11 +459,23 @@ class _HomePageState extends State<HomePage> {
                         bottom: 100,
                       ),
                       itemCount: state.cartItems.length,
+                      findItemIndexCallback: (key) {
+                        final index = state.cartItems.indexWhere(
+                          (item) => ValueKey(item.product.id) == key,
+                        );
+                        return index < 0 ? null : index;
+                      },
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final item = state.cartItems[index];
-                        return _buildCartItemCard(context, item);
+                        return CartItemSwipe(
+                          key: ValueKey(item.product.id),
+                          onRemove: () => context.read<BillingBloc>().add(
+                            RemoveProductFromCartEvent(item.product.id),
+                          ),
+                          child: _buildCartItemCard(item),
+                        );
                       },
                     );
                   },
@@ -486,20 +526,16 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildCartItemCard(BuildContext context, CartItem item) {
+  Widget _buildCartItemCard(CartItem item) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[200]!),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-        ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        spacing: 1,
+        spacing: 8,
         children: [
           Expanded(
             child: Column(
@@ -508,8 +544,8 @@ class _HomePageState extends State<HomePage> {
                 Text(
                   item.product.name,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w600,
                     fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -518,54 +554,57 @@ class _HomePageState extends State<HomePage> {
                 Text(
                   '₹${item.product.price.toStringAsFixed(2)}',
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
                     fontSize: 14,
+                    fontWeight: FontWeight.bold,
                     color: Colors.grey[600],
                   ),
                 ),
               ],
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.all(4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _circularIconButton(
-                  icon: Icons.remove,
-                  onPressed: () {
-                    if (item.quantity > 1) {
-                      context.read<BillingBloc>().add(
-                        UpdateQuantityEvent(item.product.id, item.quantity - 1),
-                      );
-                    } else {
-                      context.read<BillingBloc>().add(
-                        RemoveProductFromCartEvent(item.product.id),
-                      );
-                    }
-                  },
-                ),
-                SizedBox(
-                  width: 32,
-                  child: Text(
-                    '${item.quantity}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 160),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    tooltip: 'Decrease quantity',
+                    onPressed: () => _updateQuantity(item, item.quantity - 1),
                   ),
-                ),
-                _circularIconButton(
-                  icon: Icons.add,
-                  onPressed: () {
-                    context.read<BillingBloc>().add(
-                      UpdateQuantityEvent(item.product.id, item.quantity + 1),
-                    );
-                  },
-                ),
-              ],
+                  Flexible(
+                    child: Tooltip(
+                      message: 'Edit quantity',
+                      child: TextButton(
+                        onPressed: () => _editQuantity(item),
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(40, 48),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                        ),
+                        child: Text(
+                          '${item.quantity}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    tooltip: 'Increase quantity',
+                    onPressed: () => _updateQuantity(item, item.quantity + 1),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -573,20 +612,56 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _circularIconButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-  }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: Icon(icon, size: 20, color: Colors.grey[600]),
-      ),
+  void _updateQuantity(CartItem item, int quantity) {
+    context.read<BillingBloc>().add(
+      UpdateQuantityEvent(item.product.id, quantity),
     );
   }
 
-  // A floating Details/Checkout Button at the very bottom
-  // Added a Stack wrapper below to overlay this button
+  Future<void> _editQuantity(CartItem item) => _withScannerPaused(() async {
+    final formKey = GlobalKey<FormState>();
+    var quantityText = '${item.quantity}';
+    final quantity = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) {
+        void save() {
+          if (formKey.currentState!.validate()) {
+            Navigator.of(dialogContext).pop(int.parse(quantityText));
+          }
+        }
+
+        return AlertDialog(
+          title: const Text('Edit quantity'),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              initialValue: quantityText,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(labelText: 'Quantity'),
+              onChanged: (value) => quantityText = value,
+              onFieldSubmitted: (_) => save(),
+              validator: (value) {
+                final input = value ?? '';
+                if (!RegExp(r'^[0-9]+$').hasMatch(input) ||
+                    int.tryParse(input) == null) {
+                  return 'Enter a valid whole number';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(onPressed: save, child: const Text('Save')),
+          ],
+        );
+      },
+    );
+    if (mounted && quantity != null) _updateQuantity(item, quantity);
+  });
 }

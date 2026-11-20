@@ -15,16 +15,18 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+  bool _printed = false;
+
   @override
   Widget build(BuildContext context) {
     const borderColor = Color(0xFFE5E5EA);
 
-    return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (bool didPop, dynamic result) {
-          if (didPop) return;
-          context.read<BillingBloc>().add(ClearCartEvent());
-          context.go('/');
+    final billingBloc = context.read<BillingBloc>();
+    return PopScope<void>(
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop && _printed) {
+            billingBloc.add(ClearCartEvent());
+          }
         },
         child: Scaffold(
           appBar: AppBar(
@@ -36,21 +38,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
             leading: IconButton(
               icon: Icon(Icons.chevron_left,
                   size: 28, color: Theme.of(context).primaryColor),
-              onPressed: () {
-                context.read<BillingBloc>().add(ClearCartEvent());
-                context.go('/');
-              },
+              onPressed: () => context.pop(),
             ),
           ),
           body: BlocConsumer<BillingBloc, BillingState>(
+            listenWhen: (previous, current) =>
+                !previous.printSuccess && current.printSuccess,
             listener: (context, state) {
-              if (state.printSuccess) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Printed successfully'),
-                    backgroundColor: Colors.green));
-                // context.read<BillingBloc>().add(ClearCartEvent());
-                // context.go('/');
-              }
+              _printed = true;
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Printed successfully'),
+                  backgroundColor: Colors.green));
             },
             builder: (context, billingState) {
               return BlocBuilder<ShopBloc, ShopState>(
