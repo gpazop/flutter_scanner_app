@@ -1,4 +1,5 @@
 import 'package:billing_app/core/services/sound_service.dart';
+import 'package:billing_app/core/utils/sol_currency.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../domain/entities/cart_item.dart';
 import '../widgets/cart_item_swipe.dart';
+import '../widgets/scanner_error.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -155,7 +157,7 @@ class _HomePageState extends State<HomePage> {
                 ? null
                 : () => _withScannerPaused(() => context.push('/checkout')),
             icon: Icons.payment,
-            label: 'Review Order',
+            label: 'Revisar pedido',
           );
         },
       ),
@@ -168,7 +170,11 @@ class _HomePageState extends State<HomePage> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          MobileScanner(controller: _scannerController, onDetect: _onDetect),
+          MobileScanner(
+            controller: _scannerController,
+            onDetect: _onDetect,
+            errorBuilder: buildScannerError,
+          ),
           if (!_isCameraOn) _buildCameraOffState(),
 
           // Overlay Actions (Top Right)
@@ -254,7 +260,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Camera is turned off',
+            'La cámara está apagada',
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -265,7 +271,7 @@ class _HomePageState extends State<HomePage> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 32),
             child: Text(
-              'Turn on your camera to start scanning barcodes and items automatically.',
+              'Activa la cámara para escanear los códigos de barras de tus productos.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
@@ -282,7 +288,7 @@ class _HomePageState extends State<HomePage> {
             ),
             icon: const Icon(Icons.videocam),
             label: const Text(
-              'Turn on Camera',
+              'Activar cámara',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             onPressed: () => _setCameraOn(true),
@@ -393,14 +399,16 @@ class _HomePageState extends State<HomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Scanned Items',
+                            'Productos escaneados',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
-                            '$totalItems items total',
+                            totalItems == 1
+                                ? '1 unidad'
+                                : '$totalItems unidades',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.grey,
@@ -415,7 +423,7 @@ class _HomePageState extends State<HomePage> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           const Text(
-                            'TOTAL PRICE',
+                            'TOTAL',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -424,7 +432,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           Text(
-                            '₹${state.totalAmount.toStringAsFixed(2)}',
+                            SolCurrency.format(state.totalAmount),
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w900,
@@ -509,14 +517,14 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'List is empty',
+            'El carrito está vacío',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 8),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'Scanned items will appear here as you scan them with the camera above.',
+              'Escanea un código de barras para agregar un producto al carrito.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey, fontSize: 14),
             ),
@@ -552,7 +560,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '₹${item.product.price.toStringAsFixed(2)}',
+                  SolCurrency.format(item.product.price),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -574,12 +582,12 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.remove),
-                    tooltip: 'Decrease quantity',
+                    tooltip: 'Reducir cantidad',
                     onPressed: () => _updateQuantity(item, item.quantity - 1),
                   ),
                   Flexible(
                     child: Tooltip(
-                      message: 'Edit quantity',
+                      message: 'Editar cantidad',
                       child: TextButton(
                         onPressed: () => _editQuantity(item),
                         style: TextButton.styleFrom(
@@ -600,7 +608,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.add),
-                    tooltip: 'Increase quantity',
+                    tooltip: 'Aumentar cantidad',
                     onPressed: () => _updateQuantity(item, item.quantity + 1),
                   ),
                 ],
@@ -631,7 +639,7 @@ class _HomePageState extends State<HomePage> {
         }
 
         return AlertDialog(
-          title: const Text('Edit quantity'),
+          title: const Text('Editar cantidad'),
           content: Form(
             key: formKey,
             child: TextFormField(
@@ -639,14 +647,14 @@ class _HomePageState extends State<HomePage> {
               autofocus: true,
               keyboardType: TextInputType.number,
               textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(labelText: 'Quantity'),
+              decoration: const InputDecoration(labelText: 'Cantidad'),
               onChanged: (value) => quantityText = value,
               onFieldSubmitted: (_) => save(),
               validator: (value) {
                 final input = value ?? '';
                 if (!RegExp(r'^[0-9]+$').hasMatch(input) ||
                     int.tryParse(input) == null) {
-                  return 'Enter a valid whole number';
+                  return 'Ingresa un número entero válido';
                 }
                 return null;
               },
@@ -655,9 +663,9 @@ class _HomePageState extends State<HomePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: const Text('Cancelar'),
             ),
-            FilledButton(onPressed: save, child: const Text('Save')),
+            FilledButton(onPressed: save, child: const Text('Guardar')),
           ],
         );
       },

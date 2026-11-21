@@ -31,8 +31,11 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   ) async {
     final result = await getProductByBarcodeUseCase(event.barcode);
     result.fold(
-      (failure) =>
-          emit(state.copyWith(error: 'Product not found: ${event.barcode}')),
+      (failure) => emit(
+        state.copyWith(
+          error: 'No se encontró un producto con el código ${event.barcode}.',
+        ),
+      ),
       (product) {
         add(AddProductToCartEvent(product));
       },
@@ -113,7 +116,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         if (!connected) {
           emit(
             state.copyWith(
-              error: 'Failed to auto-connect to printer!',
+              error: 'No se pudo conectar automáticamente a la impresora.',
               clearError: false,
             ),
           );
@@ -123,7 +126,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       } else {
         emit(
           state.copyWith(
-            error: 'Printer not connected & no saved printer found!',
+            error: 'No hay una impresora conectada ni guardada.',
             clearError: false,
           ),
         );
@@ -159,11 +162,11 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       );
 
       emit(state.copyWith(isPrinting: false, printSuccess: true));
-    } catch (e) {
+    } catch (_) {
       emit(
         state.copyWith(
           isPrinting: false,
-          error: 'Print failed: $e',
+          error: 'No se pudo imprimir el recibo.',
           clearError: false,
         ),
       );

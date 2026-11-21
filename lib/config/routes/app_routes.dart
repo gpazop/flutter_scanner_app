@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../features/billing/presentation/pages/home_page.dart';
 import '../../features/product/presentation/pages/product_list_page.dart';
 import '../../features/product/presentation/pages/add_product_page.dart';
@@ -11,6 +13,15 @@ import '../../features/product/domain/entities/product.dart';
 
 final router = GoRouter(
   initialLocation: '/',
+  errorBuilder: (context, state) => Scaffold(
+    appBar: AppBar(title: const Text('Página no encontrada')),
+    body: Center(
+      child: TextButton(
+        onPressed: () => context.go('/'),
+        child: const Text('Volver al inicio'),
+      ),
+    ),
+  ),
   routes: [
     GoRoute(
       path: '/',

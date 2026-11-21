@@ -2,8 +2,11 @@ import 'package:intl/intl.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'sol_currency.dart';
+
 class EscPos {
   static const List<int> init = [0x1B, 0x40];
+  static const List<int> selectWindows1252 = [0x1B, 0x74, 16];
   static const List<int> alignCenter = [0x1B, 0x61, 0x01];
   static const List<int> alignLeft = [0x1B, 0x61, 0x00];
   static const List<int> alignRight = [0x1B, 0x61, 0x02];
@@ -74,32 +77,13 @@ class PrinterHelper {
   Future<void> printText(String text) async {
     if (!_isConnected) return;
 
-    // Simple text printing
-    // We can use bytes for advanced formatting
-    // But plugin supports basic text or bytes
-
-    // Checking battery or connection status
     final bool connectionStatus = await PrintBluetoothThermal.connectionStatus;
     if (connectionStatus) {
-      // Plugin allows sending bytes. We need ESC/POS commands for text.
-      // However, the plugin might have helper.
-      // Looking at doc, `writeBytes` or `writeString`?
-      // The plugin `print_bluetooth_thermal` mainly exposes `writeBytes`.
-      // We need a generator. `esc_pos_utils` is common but not requested.
-      // But wait, `print_bluetooth_thermal` example often uses `capability_profile` and `generator`.
-      // I don't have `esc_pos_utils` or similar in my pubspec.
-      // The user requested `print_bluetooth_thermal`.
-      // Let's assume we can send raw string bytes or use a simple helper.
-      // Actually without `esc_pos_utils`, formatting is hard.
-      // I will try to use `esc_pos_utils_plus` or similar if I can add it, but user gave specific packages.
-      // Wait, user allowed "use required plugins".
-      // "suggest barcode scanner ... and use required plugins".
-      // So I can add `esc_pos_utils_plus`.
-
-      // For now, I'll assume simple text printing by converting string to bytes.
-      // ASCII bytes.
-      List<int> bytes = text.codeUnits;
-      await PrintBluetoothThermal.writeBytes(bytes);
+      await PrintBluetoothThermal.writeBytes([
+        ...EscPos.init,
+        ...EscPos.selectWindows1252,
+        ..._textToBytes(text),
+      ]);
     }
   }
 
@@ -114,88 +98,108 @@ class PrinterHelper {
   }) async {
     if (!_isConnected) return;
 
-    // Construct ESC/POS bytes manually or using helper
-    List<int> bytes = [];
-
-    // Init
-    bytes += EscPos.init;
-
-    // Shop Name (Center, Bold, Large)
-    bytes += EscPos.alignCenter;
-    bytes += EscPos.boldOn;
-    bytes += EscPos.textLarge;
-    bytes += _textToBytes(shopName);
-    bytes += EscPos.lineFeed;
-
-    // Address & Phone (Normal, Center)
-    bytes += EscPos.textNormal;
-    bytes += EscPos.boldOff;
-    if (address1.isNotEmpty) {
-      bytes += _textToBytes(address1);
-      bytes += EscPos.lineFeed;
-    }
-    if (address2.isNotEmpty) {
-      bytes += _textToBytes(address2);
-      bytes += EscPos.lineFeed;
-    }
-    bytes += _textToBytes(phone);
-    bytes += EscPos.lineFeed;
-
-    // Date and Time
-    String formattedDate =
-        DateFormat('dd-MM-yyyy hh:mm a').format(DateTime.now());
-    bytes += _textToBytes(formattedDate);
-    bytes += EscPos.lineFeed;
-
-    bytes += _textToBytes('--------------------------------');
-    bytes += EscPos.lineFeed;
-
-    // Header (Align Left)
-    bytes += EscPos.alignLeft;
-    bytes += _textToBytes('Item            Price   Total');
-    bytes += EscPos.lineFeed;
-    bytes += _textToBytes('--------------------------------');
-    bytes += EscPos.lineFeed;
-
-    // Items
-    for (var item in items) {
-      String name = item['name'].toString();
-      String qty = item['qty'].toString();
-      String price = item['price'].toString();
-      String totalItem = item['total'].toString();
-
-      String prefix = '${qty}x $name';
-      if (prefix.length > 16) prefix = prefix.substring(0, 16);
-
-      String line = prefix.padRight(16) + price.padRight(8) + totalItem;
-      bytes += _textToBytes(line);
-      bytes += EscPos.lineFeed;
-    }
-
-    bytes += _textToBytes('--------------------------------');
-    bytes += EscPos.lineFeed;
-
-    // Total (Align Right)
-    bytes += EscPos.alignRight;
-    bytes += EscPos.boldOn;
-    bytes += _textToBytes('TOTAL: $total');
-    bytes += EscPos.lineFeed;
-    bytes += EscPos.boldOff;
-    bytes += EscPos.lineFeed;
-
-    // Footer (Center)
-    bytes += EscPos.alignCenter;
-    bytes += _textToBytes(footer);
-    bytes += EscPos.lineFeed;
-    bytes += EscPos.lineFeed; // One line space after footer
-    bytes += EscPos.lineFeed;
-    bytes += EscPos.lineFeed; // Additional Feed
-
+    final bytes = buildReceipt(
+      shopName: shopName,
+      address1: address1,
+      address2: address2,
+      phone: phone,
+      items: items,
+      total: total,
+      footer: footer,
+      issuedAt: DateTime.now(),
+    );
     await PrintBluetoothThermal.writeBytes(bytes);
   }
 
-  List<int> _textToBytes(String text) {
-    // Should verify encoding, but Latin-1 usually works for basic printers
-    return List.from(text.codeUnits);
+  static List<int> buildReceipt({
+    required String shopName,
+    required String address1,
+    required String address2,
+    required String phone,
+    required List<Map<String, dynamic>> items,
+    required double total,
+    required String footer,
+    required DateTime issuedAt,
+  }) {
+    final bytes = <int>[];
+
+    // Init
+    bytes.addAll(EscPos.init);
+    bytes.addAll(EscPos.selectWindows1252);
+
+    // Shop Name (Center, Bold, Large)
+    bytes.addAll(EscPos.alignCenter);
+    bytes.addAll(EscPos.boldOn);
+    bytes.addAll(EscPos.textLarge);
+    bytes.addAll(_textToBytes(shopName));
+    bytes.addAll(EscPos.lineFeed);
+
+    // Address & Phone (Normal, Center)
+    bytes.addAll(EscPos.textNormal);
+    bytes.addAll(EscPos.boldOff);
+    if (address1.isNotEmpty) {
+      bytes.addAll(_textToBytes(address1));
+      bytes.addAll(EscPos.lineFeed);
+    }
+    if (address2.isNotEmpty) {
+      bytes.addAll(_textToBytes(address2));
+      bytes.addAll(EscPos.lineFeed);
+    }
+    bytes.addAll(_textToBytes(phone));
+    bytes.addAll(EscPos.lineFeed);
+
+    // Date and Time
+    final formattedDate = DateFormat('dd/MM/yyyy HH:mm').format(issuedAt);
+    bytes.addAll(_textToBytes(formattedDate));
+    bytes.addAll(EscPos.lineFeed);
+
+    bytes.addAll(_textToBytes('--------------------------------'));
+    bytes.addAll(EscPos.lineFeed);
+
+    // Header (Align Left)
+    bytes.addAll(EscPos.alignLeft);
+    bytes.addAll(_textToBytes('Producto'));
+    bytes.addAll(EscPos.lineFeed);
+    bytes.addAll(
+        _textToBytes('Precio unit.'.padLeft(16) + 'Importe'.padLeft(16)));
+    bytes.addAll(EscPos.lineFeed);
+    bytes.addAll(_textToBytes('--------------------------------'));
+    bytes.addAll(EscPos.lineFeed);
+
+    // Items
+    for (final item in items) {
+      final price = SolCurrency.format(item['price'] as num);
+      final subtotal = SolCurrency.format(item['total'] as num);
+      bytes.addAll(_textToBytes("${item['qty']}x ${item['name']}"));
+      bytes.addAll(EscPos.lineFeed);
+      bytes.addAll(_textToBytes(price.padLeft(16) + subtotal.padLeft(16)));
+      bytes.addAll(EscPos.lineFeed);
+    }
+
+    bytes.addAll(_textToBytes('--------------------------------'));
+    bytes.addAll(EscPos.lineFeed);
+
+    // Total (Align Right)
+    bytes.addAll(EscPos.alignRight);
+    bytes.addAll(EscPos.boldOn);
+    bytes.addAll(_textToBytes('TOTAL ${SolCurrency.format(total)}'));
+    bytes.addAll(EscPos.lineFeed);
+    bytes.addAll(EscPos.boldOff);
+    bytes.addAll(EscPos.lineFeed);
+
+    // Footer (Center)
+    bytes.addAll(EscPos.alignCenter);
+    bytes.addAll(_textToBytes(footer));
+    bytes.addAll(EscPos.lineFeed);
+    bytes.addAll(EscPos.lineFeed); // One line space after footer
+    bytes.addAll(EscPos.lineFeed);
+    bytes.addAll(EscPos.lineFeed); // Additional Feed
+
+    return bytes;
+  }
+
+  static List<int> _textToBytes(String text) {
+    // The Spanish characters in Latin-1 use the same bytes in Windows-1252.
+    return text.runes.map((rune) => rune <= 0xFF ? rune : 0x3F).toList();
   }
 }

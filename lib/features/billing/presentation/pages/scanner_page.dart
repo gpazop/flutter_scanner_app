@@ -4,6 +4,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vibration/vibration.dart';
 
+import '../widgets/scanner_error.dart';
+
 class ScannerPage extends StatefulWidget {
   const ScannerPage({super.key});
 
@@ -62,7 +64,7 @@ class _ScannerPageState extends State<ScannerPage> {
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Scan Barcode',
+          'Escanear código de barras',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
@@ -71,7 +73,7 @@ class _ScannerPageState extends State<ScannerPage> {
           MobileScanner(
             controller: controller,
             onDetect: _onDetect,
-            // Removed overlay property
+            errorBuilder: buildScannerError,
           ),
           // Simple border overlay manually
           Container(
@@ -110,7 +112,7 @@ class _ScannerPageState extends State<ScannerPage> {
             left: 0,
             right: 0,
             child: Text(
-              'Align barcode within frame',
+              'Ubica el código de barras dentro del recuadro',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),

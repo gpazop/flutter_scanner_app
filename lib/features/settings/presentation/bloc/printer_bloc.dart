@@ -33,7 +33,7 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
       if (devices.isEmpty) {
         emit(state.copyWith(
           status: PrinterStatus.scanFailure,
-          errorMessage: 'No paired devices found.',
+          errorMessage: 'No se encontraron dispositivos emparejados.',
           devices: [],
         ));
         return;
@@ -59,14 +59,14 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
       if (!connected) {
         emit(state.copyWith(
           status: PrinterStatus.scanFailure,
-          errorMessage: 'Could not connect to any paired device.',
+          errorMessage: 'No se pudo conectar a ningún dispositivo emparejado.',
           devices: devices,
         ));
       }
-    } catch (e) {
+    } catch (_) {
       emit(state.copyWith(
         status: PrinterStatus.scanFailure,
-        errorMessage: e.toString(),
+        errorMessage: 'No se pudo buscar impresoras Bluetooth.',
       ));
     }
   }
@@ -80,10 +80,10 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
         status: PrinterStatus.scanSuccess,
         devices: devices,
       ));
-    } catch (e) {
+    } catch (_) {
       emit(state.copyWith(
         status: PrinterStatus.scanFailure,
-        errorMessage: e.toString(),
+        errorMessage: 'No se pudo buscar impresoras Bluetooth.',
       ));
     }
   }
@@ -102,7 +102,7 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
     } else {
       emit(state.copyWith(
         status: PrinterStatus.connectionFailure,
-        errorMessage: 'Failed to connect to printer',
+        errorMessage: 'No se pudo conectar a la impresora.',
       ));
     }
   }

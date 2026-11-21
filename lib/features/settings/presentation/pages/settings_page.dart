@@ -28,7 +28,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings',
+        title: const Text('Configuración',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -49,8 +49,8 @@ class _SettingsPageState extends State<SettingsPage> {
               padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
               child: BlocBuilder<ShopBloc, ShopState>(
                 builder: (context, state) {
-                  String shopName = 'Elite Groceries';
-                  String initials = 'EG';
+                  String shopName = 'Mi negocio';
+                  String initials = 'MN';
                   if (state is ShopLoaded && state.shop.name.isNotEmpty) {
                     shopName = state.shop.name;
                     final parts = shopName.split(' ');
@@ -58,7 +58,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         .take(2)
                         .map((p) => p.isNotEmpty ? p[0].toUpperCase() : '')
                         .join('');
-                    if (initials.isEmpty) initials = 'S';
+                    if (initials.isEmpty) initials = 'MN';
                   }
 
                   return Column(
@@ -98,20 +98,20 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 24),
 
             // Management Section
-            _buildSectionHeader('Management'),
+            _buildSectionHeader('Administración'),
             _buildListGroup(
               children: [
                 _buildListItem(
                   icon: Icons.qr_code_scanner,
-                  title: 'Products',
-                  subtitle: 'Manage stock and barcodes',
+                  title: 'Productos',
+                  subtitle: 'Administra el catálogo y los códigos de barras',
                   onTap: () => context.push('/products'),
                 ),
                 _buildDivider(),
                 _buildListItem(
                   icon: Icons.storefront,
-                  title: 'Shop Details',
-                  subtitle: 'Edit business info & address',
+                  title: 'Datos del negocio',
+                  subtitle: 'Edita los datos y la dirección del negocio',
                   onTap: () => context.push('/shop'),
                 ),
               ],
@@ -120,7 +120,7 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 24),
 
             // Hardware Section
-            _buildSectionHeader('Hardware'),
+            _buildSectionHeader('Dispositivos'),
             BlocConsumer<PrinterBloc, PrinterState>(
               listener: (context, state) {
                 if (state.errorMessage != null) {
@@ -129,7 +129,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       backgroundColor: Colors.red));
                 } else if (state.status == PrinterStatus.connected) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Connected to printer'),
+                      content: Text('Conexión con la impresora establecida'),
                       backgroundColor: Colors.green));
                 }
               },
@@ -138,15 +138,20 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     _buildListItem(
                       icon: Icons.print,
-                      title: 'Print Device',
+                      title: 'Impresora',
                       subtitleWidget: Row(
                         children: [
-                          Text(
-                            state.connectedMac != null
-                                ? (state.connectedName ?? 'Printer connected')
-                                : 'No printer connected',
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.grey[500]),
+                          Flexible(
+                            child: Text(
+                              state.connectedMac != null
+                                  ? (state.connectedName ??
+                                      'Impresora conectada')
+                                  : 'Sin impresora conectada',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey[500]),
+                            ),
                           ),
                           if (state.connectedMac != null) ...[
                             const SizedBox(width: 8),
@@ -158,7 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: Colors.teal[200]!)),
                               child: Text(
-                                'CONNECTED',
+                                'CONECTADA',
                                 style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.bold,
@@ -181,6 +186,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           else
                             IconButton(
                               icon: const Icon(Icons.refresh),
+                              tooltip: 'Actualizar',
                               onPressed: () => context
                                   .read<PrinterBloc>()
                                   .add(RefreshPrinterEvent()),
@@ -188,6 +194,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                           IconButton(
                             icon: const Icon(Icons.settings),
+                            tooltip: 'Configuración de Bluetooth',
                             onPressed: () {
                               AppSettings.openAppSettings(
                                   type: AppSettingsType.bluetooth);
@@ -205,7 +212,7 @@ class _SettingsPageState extends State<SettingsPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Text(
-                "To connect a new device, tap on the Settings gear to pair in phone's Bluetooth settings, then return and hit Refresh.",
+                'Para conectar una impresora, emparéjala en la configuración Bluetooth del teléfono. Luego vuelve a esta pantalla y toca Actualizar.',
                 style: TextStyle(
                     fontSize: 11,
                     fontStyle: FontStyle.italic,

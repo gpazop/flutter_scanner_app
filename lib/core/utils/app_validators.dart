@@ -1,3 +1,5 @@
+import 'sol_currency.dart';
+
 class AppValidators {
   static String? Function(String?) required(String message) {
     return (String? value) {
@@ -10,13 +12,14 @@ class AppValidators {
 
   static String? price(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Please enter a price';
+      return 'Ingresa un precio';
     }
-    if (double.tryParse(value) == null) {
-      return 'Please enter a valid number';
+    final amount = SolCurrency.tryParse(value);
+    if (amount == null) {
+      return 'Ingresa un precio válido';
     }
-    if (double.parse(value) < 0) {
-      return 'Price cannot be negative';
+    if (amount < 0) {
+      return 'El precio debe ser mayor o igual a cero';
     }
     return null;
   }

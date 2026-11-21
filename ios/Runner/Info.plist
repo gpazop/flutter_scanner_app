@@ -3,9 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>es-PE</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>es-PE</string>
+	</array>
 	<key>CFBundleDisplayName</key>
-	<string>Billing App</string>
+	<string>Punto de venta</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -46,12 +50,12 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>We need camera access to scan barcodes.</string>
+	<string>La cámara se usa para escanear códigos de barras.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>We need bluetooth to connect to thermal printers.</string>
+	<string>Bluetooth se usa para conectar impresoras térmicas.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>We need bluetooth to connect to thermal printers.</string>
+	<string>Bluetooth se usa para conectar impresoras térmicas.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need location access to find nearby printers.</string>
+	<string>La ubicación se usa para encontrar impresoras cercanas.</string>
 </dict>
 </plist>

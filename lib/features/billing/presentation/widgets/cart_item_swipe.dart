@@ -38,7 +38,7 @@ class _CartItemSwipeState extends State<CartItemSwipe>
     return Semantics(
       container: true,
       customSemanticsActions: {
-        const CustomSemanticsAction(label: 'Remove item'): widget.onRemove,
+        const CustomSemanticsAction(label: 'Eliminar producto'): widget.onRemove,
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
@@ -78,7 +78,7 @@ class _CartItemSwipeState extends State<CartItemSwipe>
                             canRequestFocus: open,
                             onTap: open ? widget.onRemove : null,
                             child: Tooltip(
-                              message: 'Remove item',
+                              message: 'Eliminar producto',
                               child: Transform.translate(
                                 offset: Offset(
                                   (1 - _reveal.value) * _actionWidth / 2,
