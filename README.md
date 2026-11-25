@@ -5,15 +5,32 @@ Aplicación Flutter de punto de venta con catálogo local, escaneo de códigos d
 Este repositorio contiene el proyecto para Android y iOS. Usa Flutter 3.47.9 con Dart 3.13.7 como entorno de referencia. Desde la carpeta que contiene `pubspec.yaml`, ejecuta estos comandos.
 
 ```sh
+flutter --version
 flutter pub get
 flutter devices
 flutter run -d <ID_DEL_DISPOSITIVO>
+```
+
+Si `flutter --version` muestra Dart 3.9.2 u otro SDK incompatible, agrega la carpeta `bin` del Flutter de referencia al principio del `PATH` de PowerShell. Sustituye la ruta de ejemplo por la de tu instalación.
+
+```powershell
+$flutterSgaBin = 'C:\ruta\al\flutter\bin'
+$env:Path = "$flutterSgaBin;$env:Path"
+flutter --version
 ```
 
 - **Android** requiere el SDK de Android con la plataforma API 37. Puedes compilar un APK de depuración con `flutter build apk --debug`.
 - **iOS** requiere macOS y Xcode con Swift Package Manager habilitado en Flutter. Provisiona la firma en Xcode si vas a ejecutar en un iPhone. Para compilar para el simulador, usa `flutter build ios --simulator`.
 
 Conserva `pubspec.lock` y los archivos de configuración versionados. Flutter genera las cachés y los archivos locales al resolver dependencias y compilar.
+
+## Arranque de SGA
+
+1. Android e iOS muestran el logo SGA centrado sobre un fondo azul durante el arranque nativo.
+2. Flutter muestra el splash mientras se inicializan Hive y las dependencias. El logo entra, gira y recupera su orientación. Luego sube con el título, la descripción y el botón **Entrar**.
+3. Al pulsar **Entrar**, el botón se comprime brevemente y el punto de venta aparece con un fundido ascendente. El degradado se mantiene en el área del escáner mientras se inicializa la cámara.
+
+Con el movimiento reducido activado, la bienvenida aparece estática y **Entrar** abre el punto de venta directamente. [Logo vectorial de SGA](assets/branding/sga-logo.svg)
 
 ## Configuración para Perú
 

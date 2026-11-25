@@ -6,13 +6,41 @@ Registro del 20 de noviembre de 2026. Las observaciones provienen de la prueba e
 
 - **Catálogo persistente.** Al cerrar y volver a abrir la app, los productos seguían registrados. Se almacenan localmente en Hive.
 - **Sesión de depuración.** Si Android termina el proceso, la sesión de Flutter se cierra. Para recuperarla, abre de nuevo la app y ejecuta `flutter attach -d <ID_DEL_CELULAR>` con el mismo SDK. Si sigue sin adjuntarse, vuelve a iniciarla con `flutter run -d <ID_DEL_CELULAR>`.
-- **Arranque lento.** La causa queda por medir. Conviene cronometrar desde que se toca el icono hasta que aparece la interfaz y, por separado, hasta que la cámara escanea. Repetir en el mismo teléfono en `debug` y en `profile` (`flutter run --profile -d <ID_DEL_CELULAR>`). El arranque espera la apertura de Hive antes de mostrar la interfaz. La cámara se inicializa en la pantalla principal. [Arranque de la app](../lib/main.dart)
+- **Arranque lento.** La causa quedó por medir. En esa versión, la app esperaba a que Hive abriera antes de mostrar la interfaz. La cámara se inicializaba en la pantalla principal. [Arranque de la app](../lib/main.dart)
 
 ## Validación del 21 de noviembre de 2026
 
 - `flutter analyze --no-pub` terminó sin incidencias en `flutter_scanner_app`.
 - Pasaron cinco pruebas automatizadas contra esta copia. Cubrieron la apertura del catálogo, el alta y los campos obligatorios de productos, la actualización del monto del QR y la generación del recibo con importes en soles.
 - Se compiló el APK de depuración en `build/app/outputs/flutter-apk/app-debug.apk`.
+
+## Validación del arranque del 24 de noviembre de 2026
+
+- Pasaron las tres pruebas del repositorio. Cubren la subida sincronizada del logo y la bienvenida, la respuesta de **Entrar** y su transición al punto de venta, y el flujo con movimiento reducido.
+- Pasaron dos pruebas locales adicionales. Una comprobó la navegación en un tamaño de pantalla móvil. La otra confirmó, con una cámara simulada, que el área del escáner mantiene el degradado durante la inicialización.
+- El análisis estático de los archivos modificados del arranque terminó sin incidencias. Queda pendiente comprobar la fluidez de la última versión en un teléfono.
+
+Ejecuta las pruebas versionadas con el SDK indicado en el README y las dependencias resueltas.
+
+```sh
+flutter test --no-pub test/startup_gate_test.dart
+```
+
+## Comprobación del arranque en el celular
+
+1. Instala la compilación de prueba con `flutter run -d <ID_DEL_CELULAR>` y vuelve a abrir la app desde un arranque en frío.
+2. Comprueba que el fondo azul con el logo dé paso al splash. El logo debe recuperar su orientación y subir junto con el texto y el botón. Esa subida dura 900 ms.
+3. Pulsa **Entrar**. El botón se comprime durante 80 ms y el punto de venta sube 20 dp con un fundido de 320 ms. Si la cámara tarda, el degradado permanece en su área hasta que termina de inicializarse.
+4. Con la escala de transición de Android en `0×`, comprueba que se muestre la bienvenida estática y que **Entrar** abra el punto de venta directamente.
+
+Tras cerrar la sesión de depuración, puedes forzar un arranque en frío con ADB. Sustituye `<ID_DEL_CELULAR>` por el identificador que aparece en `adb devices`.
+
+```sh
+adb -s <ID_DEL_CELULAR> shell am force-stop com.example.billing_app
+adb -s <ID_DEL_CELULAR> shell am start -W -n com.example.billing_app/.MainActivity
+```
+
+Para medir el arranque, registra por separado el tiempo hasta que aparece la bienvenida y el tiempo desde **Entrar** hasta que la cámara muestra la vista previa. Repite la prueba en el mismo equipo en `debug` y en `profile`.
 
 ## Pruebas pendientes en el celular
 

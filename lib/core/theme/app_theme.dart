@@ -7,6 +7,14 @@ class AppTheme {
   static const Color backgroundColor = Color(0xFFF2F2F7);
   static const Color surfaceColor = Colors.white;
   static const Color errorColor = Color(0xFFB00020);
+  static const Color launchBlue = Color(0xFF4196E3);
+  static const Color launchViolet = Color(0xFF373598);
+  static const LinearGradient launchGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [launchBlue, launchViolet],
+    stops: [0, .64],
+  );
 
  static final TextTheme textTheme = GoogleFonts.ibmPlexSansTextTheme().copyWith(
   bodyLarge: GoogleFonts.ibmPlexSans(

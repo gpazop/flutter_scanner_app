@@ -165,8 +165,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildScannerSection() {
-    return Container(
-      color: Colors.black,
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: AppTheme.launchGradient),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -174,6 +174,7 @@ class _HomePageState extends State<HomePage> {
             controller: _scannerController,
             onDetect: _onDetect,
             errorBuilder: buildScannerError,
+            placeholderBuilder: (_) => const SizedBox.expand(),
           ),
           if (!_isCameraOn) _buildCameraOffState(),
 
