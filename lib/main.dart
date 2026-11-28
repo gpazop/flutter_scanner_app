@@ -41,7 +41,7 @@ class MyApp extends StatelessWidget {
             create: (context) => di.sl<PrinterBloc>()..add(InitPrinterEvent())),
       ],
       child: MaterialApp.router(
-        title: 'Punto de venta',
+        title: 'SGA',
         locale: const Locale('es', 'PE'),
         supportedLocales: const [Locale('es', 'PE')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,

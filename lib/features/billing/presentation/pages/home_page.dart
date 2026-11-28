@@ -1,6 +1,7 @@
 import 'package:billing_app/core/services/sound_service.dart';
 import 'package:billing_app/core/utils/sol_currency.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vibration/vibration.dart';
@@ -11,6 +12,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../domain/entities/cart_item.dart';
 import '../widgets/cart_item_swipe.dart';
+import '../widgets/exit_confirmation_dialog.dart';
 import '../widgets/scanner_error.dart';
 
 class HomePage extends StatefulWidget {
@@ -28,6 +30,7 @@ class _HomePageState extends State<HomePage> {
 
   bool _isCameraOn = true;
   bool _cameraBusy = false;
+  bool _exitDialogOpen = false;
 
   // Cooldown mapping to prevent rapid firing of the same barcode
   final Map<String, DateTime> _lastScanTimes = {};
@@ -75,8 +78,22 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _confirmExit() async {
+    if (_exitDialogOpen) return;
+    _exitDialogOpen = true;
+    try {
+      final confirmed = await ExitConfirmationDialog.show(
+        context,
+        hasItems: context.read<BillingBloc>().state.cartItems.isNotEmpty,
+      );
+      if (confirmed && mounted) await SystemNavigator.pop();
+    } finally {
+      _exitDialogOpen = false;
+    }
+  }
+
   void _onDetect(BarcodeCapture capture) async {
-    if (_cameraBusy || !_isCameraOn) return;
+    if (_cameraBusy || _exitDialogOpen || !_isCameraOn) return;
     final List<Barcode> barcodes = capture.barcodes;
     final now = DateTime.now();
 
@@ -103,7 +120,7 @@ class _HomePageState extends State<HomePage> {
           Vibration.vibrate();
         }
 
-        if (mounted && !_cameraBusy && _isCameraOn) {
+        if (mounted && !_cameraBusy && !_exitDialogOpen && _isCameraOn) {
           context.read<BillingBloc>().add(ScanBarcodeEvent(rawValue));
         }
         break; // Process one barcode at a time per frame
@@ -113,7 +130,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final page = Scaffold(
       body: BlocListener<BillingBloc, BillingState>(
         listenWhen: (previous, current) =>
             previous.error != current.error && current.error != null,
@@ -161,6 +178,13 @@ class _HomePageState extends State<HomePage> {
           );
         },
       ),
+    );
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmExit();
+      },
+      child: page,
     );
   }
 

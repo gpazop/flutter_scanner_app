@@ -1,6 +1,8 @@
-# Flutter Scanner App
+# SGA
 
 Aplicación Flutter de punto de venta con catálogo local, escaneo de códigos de barras, carrito e impresión Bluetooth.
+
+En el lanzador de Android e iOS, la app se llama **SGA** y usa el monograma blanco sobre un degradado azul y violeta. El nombre previsto para la ficha de tienda es **SGA · Punto de venta**.
 
 Este repositorio contiene el proyecto para Android y iOS. Usa Flutter 3.47.9 con Dart 3.13.7 como entorno de referencia. Desde la carpeta que contiene `pubspec.yaml`, ejecuta estos comandos.
 
@@ -43,6 +45,12 @@ Con el movimiento reducido activado, la bienvenida aparece estática y **Entrar*
 - En **Productos escaneados**, usa **−** y **+** para ajustar una unidad o toca el número para escribir la cantidad.
 - Desliza una fila hacia la izquierda para revelar la papelera. Tócala para eliminar el producto o desliza hacia la derecha para cerrar la acción y conservarlo.
 - En **Revisar pedido**, puedes volver sin imprimir para agregar o corregir productos. La cámara se reanuda si estaba encendida al entrar.
+
+## Confirmación de salida
+
+Pulsa **Atrás** desde la pantalla principal para abrir el aviso de salida. **Cancelar** vuelve al punto de venta y conserva el pedido. **Salir** cierra la app. Si hay productos en el carrito, el aviso indica que el pedido actual se perderá.
+
+El diálogo se adapta a pantallas estrechas y a texto ampliado. En Android, volver desde **Revisar pedido** o desde otra pantalla continúa por la navegación habitual.
 
 Consulta el [registro de pruebas en Android](docs/pruebas-android.md) para repetir el flujo y conocer el estado de la validación.
 

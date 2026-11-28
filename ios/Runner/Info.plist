@@ -9,7 +9,7 @@
 		<string>es-PE</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-	<string>Punto de venta</string>
+	<string>SGA</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -17,7 +17,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>billing_app</string>
+	<string>SGA</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

@@ -1,6 +1,6 @@
 # Pruebas en Android
 
-Registro del 20 de noviembre de 2026. Las observaciones provienen de la prueba en el celular. Las causas confirmadas y las hipótesis se basan en la revisión del código.
+Registro de las pruebas en el celular, en el emulador y con Flutter.
 
 ## Resultados de la prueba del 20 de noviembre
 
@@ -26,6 +26,20 @@ Ejecuta las pruebas versionadas con el SDK indicado en el README y las dependenc
 flutter test --no-pub test/startup_gate_test.dart
 ```
 
+## Validación del lanzador y de la salida del 27 de noviembre de 2026
+
+- El APK de depuración compiló y se instaló en un emulador con Android 13. El cajón de aplicaciones mostró el nombre **SGA** y el monograma completo dentro de la máscara circular.
+- Pasaron las cinco pruebas del repositorio. Las dos de salida verifican la navegación desde una pantalla secundaria, la apertura del aviso, la conservación del pedido al cancelar, la solicitud de cierre al confirmar y el ajuste de los botones con texto ampliado.
+
+Desde la raíz del proyecto, con las dependencias resueltas, ejecuta las pruebas y genera el APK.
+
+```sh
+flutter test --no-pub
+flutter build apk --debug --no-pub
+```
+
+El APK queda en `build/app/outputs/flutter-apk/app-debug.apk`.
+
 ## Comprobación del arranque en el celular
 
 1. Instala la compilación de prueba con `flutter run -d <ID_DEL_CELULAR>` y vuelve a abrir la app desde un arranque en frío.
@@ -50,6 +64,8 @@ Para medir el arranque, registra por separado el tiempo hasta que aparece la bie
 | Cantidades y eliminación | Usar **−** y **+**, tocar la cantidad para editarla y deslizar una fila hacia la izquierda para revelar la papelera. Confirmar que el total se recalcula al cambiar cantidades o eliminar el producto. |
 | Volver al carrito | Abrir **Revisar pedido** y volver sin imprimir. Probar la flecha y el botón o gesto Atrás de Android. Comprobar que el carrito conserva los productos y las cantidades. |
 | Cámara | Abrir **Revisar pedido** con la cámara encendida y comprobar que escanea al volver. Repetir con la cámara apagada y comprobar que respeta esa elección. |
+| Confirmación de salida | Con un pedido en curso, pulsar **Atrás** en la pantalla principal y elegir **Cancelar**. Comprobar que se conservan los productos. Abrir el aviso de nuevo, elegir **Salir** y comprobar que se cierra la app. Repetir con el carrito vacío. |
+| Ícono del lanzador | Comprobar en un teléfono que aparece el nombre **SGA** y que la máscara del lanzador deja visible todo el monograma. Si el lanzador admite íconos temáticos, activar esa opción y revisar la variante monocromática. |
 | QR de ejemplo | Escanear el QR con otro celular. El texto debe incluir el total en soles. Cambiar la cantidad, volver a **Cobro** y comprobar que el código muestra el nuevo total. |
 | Impresión Bluetooth | Imprimir en una impresora térmica física. Revisar que el precio unitario, los subtotales y el total llevan `S/` antes de la cifra y que se imprimen los caracteres acentuados. |
 
